@@ -407,41 +407,59 @@ namespace UniHumanoid
         /// Animator から Bone を割り当てる
         /// </summary>
         /// <returns></returns>
-        public bool AssignBonesFromAnimator()
-        {
-            if (TryGetComponent<Animator>(out var animator))
-            {
-                var avatar = animator.avatar;
-                if (avatar == null)
-                {
-                    return false;
-                }
-                if (!avatar.isValid)
-                {
-                    return false;
-                }
-                if (!avatar.isHuman)
-                {
-                    return false;
-                }
+		public bool AssignBonesFromAnimator()
+		{
+			if (TryGetComponent<Animator>(out var animator))
+			{
+				var avatar = animator.avatar;
+				if (avatar == null)
+				{
+					Debug.LogError("No avatar found");
+					return false;
+				}
+				if (!avatar.isValid)
+				{
+					Debug.LogError("Avatar is not valid");
+					return false;
+				}
+				if (!avatar.isHuman)
+				{
+					Debug.LogError("Avatar is not humanoid");
+					return false;
+				}
 
-                var keys = CachedEnum.GetValues<HumanBodyBones>();
+				Debug.Log($"Assigning bones from animator with avatar: {avatar.name}");
+				var keys = CachedEnum.GetValues<HumanBodyBones>();
 
-                AssignBones(keys.Select(x =>
-                {
-                    if (x == HumanBodyBones.LastBone)
-                    {
-                        return (HumanBodyBones.LastBone, null);
-                    }
-                    return ((HumanBodyBones)Enum.Parse(typeof(HumanBodyBones), x.ToString(), true), animator.GetBoneTransform(x));
-                }));
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+				AssignBones(keys.Select(x =>
+				{
+					if (x == HumanBodyBones.LastBone)
+					{
+						return (HumanBodyBones.LastBone, null);
+					}
+					var transform = animator.GetBoneTransform(x);
+					if (transform != null)
+					{
+						Debug.Log($"Found bone mapping: {x} -> {transform.name}");
+					}
+					return ((HumanBodyBones)Enum.Parse(typeof(HumanBodyBones), x.ToString(), true), transform);
+				}));
+
+				// Verify assignments after mapping
+				var leftShoulder = GetBoneTransform(HumanBodyBones.LeftShoulder);
+				Debug.Log($"LeftShoulder Final Assignment: {leftShoulder?.name}");
+
+				var neck = GetBoneTransform(HumanBodyBones.Neck);
+				Debug.Log($"Neck Final Assignment: {neck?.name}");
+
+				return true;
+			}
+			else
+			{
+				Debug.LogError("No Animator component found");
+				return false;
+			}
+		}
 
         public bool TryGetBoneForTransform(Transform t, out HumanBodyBones bone)
         {
