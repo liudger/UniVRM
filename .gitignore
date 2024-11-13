@@ -63,3 +63,6 @@ UserSettings/
 public
 *.pyc
 .venv
+
+# macOS
+.DS_Store
