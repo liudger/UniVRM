@@ -275,6 +275,12 @@ namespace UniHumanoid
 			return avatarDescription;
 		}
 
+		/// <summary>
+		/// Create an AvatarDescription from a skeleton and bone transforms.
+		/// </summary>
+		/// <param name="boneTransforms">The transforms of the bones in the skeleton.</param>
+		/// <param name="skeleton">The skeleton to use for the AvatarDescription.</param>
+		/// <returns>Returns a new AvatarDescription instance.</returns>
 		public static AvatarDescription Create(Transform[] boneTransforms, Skeleton skeleton)
 		{
 			Debug.Log($"Creating AvatarDescription from {boneTransforms.Length} transforms and skeleton");
