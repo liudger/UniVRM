@@ -7,10 +7,9 @@ using System.Linq;
 using System.Collections.Generic;
 using UniGLTF.Utils;
 
-
 namespace UniHumanoid
 {
-	// TODO: BoneLimit.cs に分ける(v0.104以降)
+	// TODO: Split into BoneLimit.cs (after v0.104)
 	[Serializable]
 	public struct BoneLimit
 	{
@@ -23,16 +22,15 @@ namespace UniHumanoid
 		public float axisLength;
 
 
-		// HumanTrait.BoneName は HumanBodyBones.ToString とほぼ一対一に対応するが、
-		// 指のボーンについては " " の有無という微妙な違いがある。
-		// このスペースは AvatarBuilder.BuildHumanAvatar において必用であり、
-		// HumanBodyBones.ToString と区別する必要がある。
+		// HumanTrait.BoneName corresponds almost one-to-one with HumanBodyBones.ToString, but
+		// there is a subtle difference in the presence or absence of spaces for finger bones.
+		// This space is required by AvatarBuilder.BuildHumanAvatar,
+		// and it is necessary to distinguish it from HumanBodyBones.ToString.
 		//
-		// また、下記についてGCが発生するのでキャッシュします。
+		// Also, cache the following to avoid GC allocations.
 		// * HumanTrait.BoneName
 		// * traitName.Replace
 		// * Enum.Parse
-		//
 		private static readonly Dictionary<HumanBodyBones, string> cachedHumanBodyBonesToBoneTraitNameMap =
 			HumanTrait.BoneName.ToDictionary(
 				traitName => (HumanBodyBones)Enum.Parse(typeof(HumanBodyBones), traitName.Replace(" ", string.Empty)),
