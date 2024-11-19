@@ -8,7 +8,6 @@ using System.Text;
 using UnityEditor;
 #endif
 
-
 namespace UniHumanoid
 {
 	[Obsolete("use BvhImporterContext")]
@@ -68,7 +67,11 @@ namespace UniHumanoid
 			Bvh = Bvh.Parse(Source);
 		}
 
-		public void Load()
+		/// <summary>
+		/// Load bvh file and create an character with Animator and AnimationClip.
+		/// </summary>
+		/// <param name="bvhAvatar">The Humanoid avatar to use for the character.</param>
+		public void Load(Avatar bvhAvatar = null)
 		{
 			//
 			// build hierarchy
@@ -76,54 +79,6 @@ namespace UniHumanoid
 			Root = new GameObject(System.IO.Path.GetFileNameWithoutExtension(Path));
 			Transform hips = BuildHierarchy(Root.transform, Bvh.Root, 1.0f);
 			var skeleton = Skeleton.Estimate(hips);
-
-			// Add this block to set up proper bone mapping
-			var boneMapping = Root.AddComponent<BoneMapping>();
-			boneMapping.Bones = new GameObject[(int)HumanBodyBones.LastBone];
-
-			// Map the bones based on the skeleton estimation
-			foreach (var bone in skeleton.Bones)
-			{
-				var boneTransform = hips.Traverse().ElementAtOrDefault(bone.Value);
-				if (boneTransform != null)
-				{
-					boneMapping.Bones[(int)bone.Key] = boneTransform.gameObject;
-					Debug.Log($"Mapped {bone.Key} to {boneTransform.name}");
-				}
-			}
-
-			// Verify required bones are mapped before T-pose
-			if (boneMapping.Bones[(int)HumanBodyBones.LeftUpperArm] != null &&
-				boneMapping.Bones[(int)HumanBodyBones.LeftLowerArm] != null &&
-				boneMapping.Bones[(int)HumanBodyBones.RightUpperArm] != null &&
-				boneMapping.Bones[(int)HumanBodyBones.RightLowerArm] != null)
-			{
-				Debug.Log("Required bones found for T-pose, applying...");
-				boneMapping.EnsureTPose();
-			}
-			else
-			{
-				Debug.LogWarning("Missing required bones for T-pose");
-			}
-
-			// After enforcing T-pose, add debug verification
-			if (boneMapping != null)
-			{
-				var leftUpperArm = boneMapping.Bones[(int)HumanBodyBones.LeftUpperArm];
-				var rightUpperArm = boneMapping.Bones[(int)HumanBodyBones.RightUpperArm];
-
-				if (leftUpperArm != null && rightUpperArm != null)
-				{
-					var leftLowerArm = boneMapping.Bones[(int)HumanBodyBones.LeftLowerArm];
-					var rightLowerArm = boneMapping.Bones[(int)HumanBodyBones.RightLowerArm];
-
-					Vector3 leftArmDir = (leftLowerArm.transform.position - leftUpperArm.transform.position).normalized;
-					Vector3 rightArmDir = (rightLowerArm.transform.position - rightUpperArm.transform.position).normalized;
-
-					Debug.Log($"Left Arm Direction: {leftArmDir}, Angle from left: {Vector3.Angle(leftArmDir, Vector3.left)}");
-					Debug.Log($"Right Arm Direction: {rightArmDir}, Angle from right: {Vector3.Angle(rightArmDir, Vector3.right)}");
-				}
-			}
 
 			var description = AvatarDescription.Create(hips.Traverse().ToArray(), skeleton);
 
@@ -156,7 +111,7 @@ namespace UniHumanoid
 			Animation = BvhAnimation.CreateAnimationClip(Bvh, scaling);
 			Animation.name = Root.name;
 			Animation.legacy = true;
-			Animation.wrapMode = WrapMode.Loop;
+			Animation.wrapMode = WrapMode.Once;
 
 			Animation animation = Root.AddComponent<Animation>();
 			animation.AddClip(Animation, Animation.name);
@@ -166,11 +121,20 @@ namespace UniHumanoid
 			//
 			// avatar
 			//
-			Avatar = description.CreateAvatar(Root.transform);
-			Avatar.name = "Avatar";
-			AvatarDescription = description;
 			Animator animator = Root.AddComponent<Animator>();
-			animator.avatar = Avatar;
+			if (bvhAvatar != null && bvhAvatar.isValid && bvhAvatar.isHuman)
+			{
+				animator.avatar = bvhAvatar;
+				Avatar = bvhAvatar;
+				Debug.Log("used avatar: " + bvhAvatar.name);
+			}
+			else
+			{
+				Avatar = description.CreateAvatar(Root.transform);
+				Avatar.name = "Avatar";
+				AvatarDescription = description;
+				animator.avatar = description.CreateAvatar(Root.transform);
+			}
 
 			Root.AddComponent<HumanPoseTransfer>();
 		}
